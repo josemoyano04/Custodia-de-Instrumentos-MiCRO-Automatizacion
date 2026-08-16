@@ -1,0 +1,61 @@
+:root {
+  /* MODO CLARO (POR DEFECTO) */
+  --bg-gradient: linear-gradient(160deg, #caeaff 0%, #edf8ff 55%, #daf2ff 100%);
+  --surface: #ffffff;
+  --surface-hover: #f0f8ff;
+  --card-bg: #ffffff;
+  --border: #9dd8f7;
+  --text: #081e2b;
+  --soft: #1e4b66;
+  --label-text: #092a40;
+  --label-blue: #005a8d;
+  --muted: #679bb8;
+
+  --blue: #01b2fe;
+  --blue-d: #007bb8;
+
+  --ok: #009657;
+  --ok-bg: rgba(0, 185, 107, .12);
+  --ok-br: rgba(0, 185, 107, .4);
+
+  --warn: #d92b2b;
+  --warn-bg: rgba(229, 62, 62, .1);
+  --warn-br: rgba(229, 62, 62, .4);
+
+  --info-bg: rgba(1, 178, 254, .1);
+  --info-br: rgba(1, 178, 254, .4);
+
+  --r: 14px;
+  --sh: 0 4px 20px rgba(1, 178, 254, .15);
+  --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+[data-theme="dark"] {
+  /* MODO OSCURO */
+  --bg-gradient: linear-gradient(160deg, #0b1329 0%, #0f172a 55%, #0d1e36 100%);
+  --surface: #1e293b;
+  --surface-hover: #334155;
+  --card-bg: #1e293b;
+  --border: #334155;
+  --text: #f8fafc;
+  --soft: #94a3b8;
+  --label-text: #cbd5e1;
+  --label-blue: #38bdf8;
+  --muted: #64748b;
+
+  --blue: #01b2fe;
+  --blue-d: #38bdf8;
+
+  --ok: #10b981;
+  --ok-bg: rgba(16, 185, 129, .15);
+  --ok-br: rgba(16, 185, 129, .4);
+
+  --warn: #ef4444;
+  --warn-bg: rgba(239, 68, 68, .15);
+  --warn-br: rgba(239, 68, 68, .4);
+
+  --info-bg: rgba(1, 178, 254, .15);
+  --info-br: rgba(1, 178, 254, .4);
+
+  --sh: 0 6px 24px rgba(0, 0, 0, .4);
+}
