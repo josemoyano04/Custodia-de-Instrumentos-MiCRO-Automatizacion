@@ -7,9 +7,6 @@ interface MaquinaCardProps {
   onSeleccionarMaquina: (maq: Maquina | null) => void;
   visible: boolean;
   label?: string;
-  onActiveInput?: () => void;
-  externalQuery?: string;
-  onExternalQueryChange?: (val: string) => void;
 }
 
 export const MaquinaCard: React.FC<MaquinaCardProps> = ({
@@ -17,17 +14,11 @@ export const MaquinaCard: React.FC<MaquinaCardProps> = ({
   maquinaSeleccionada,
   onSeleccionarMaquina,
   visible,
-  label = "Máquina / Sector (destinatario)",
-  onActiveInput,
-  externalQuery,
-  onExternalQueryChange
+  label = "Máquina / Sector (destinatario)"
 }) => {
-  const [internalQuery, setInternalQuery] = useState<string>("");
-  const query = externalQuery !== undefined ? externalQuery : internalQuery;
-
+  const [query, setQuery] = useState<string>("");
   const [dropdownVisible, setDropdownVisible] = useState<boolean>(false);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
-  const [nativeKbdOpen, setNativeKbdOpen] = useState<boolean>(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -67,30 +58,20 @@ export const MaquinaCard: React.FC<MaquinaCardProps> = ({
 
   if (!visible) return null;
 
-  const setQueryValue = (val: string) => {
-    if (onExternalQueryChange) {
-      onExternalQueryChange(val);
-    } else {
-      setInternalQuery(val);
-    }
-  };
-
   const handleInputChange = (val: string) => {
-    setQueryValue(val);
+    setQuery(val);
     onSeleccionarMaquina(null);
   };
 
   const handleSelect = (m: Maquina) => {
     onSeleccionarMaquina(m);
-    setQueryValue("");
+    setQuery("");
     setDropdownVisible(false);
-    setNativeKbdOpen(false);
   };
 
   const handleDeselect = () => {
     onSeleccionarMaquina(null);
-    setQueryValue("");
-    setNativeKbdOpen(false);
+    setQuery("");
   };
 
   const cleanQ = query.trim().toUpperCase();
@@ -125,14 +106,6 @@ export const MaquinaCard: React.FC<MaquinaCardProps> = ({
       if (filtered.length > 0) {
         handleSelect(filtered[0]);
       }
-    }
-  };
-
-  const handleToggleNativeKbd = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setNativeKbdOpen(true);
-    if (inputRef.current) {
-      inputRef.current.focus();
     }
   };
 
@@ -180,7 +153,7 @@ export const MaquinaCard: React.FC<MaquinaCardProps> = ({
             </div>
           ) : (
             /* Input de búsqueda cuando no hay máquina/sector seleccionado */
-            <div className="input-with-kbd-btn">
+            <>
               <input
                 ref={inputRef}
                 type="text"
@@ -189,27 +162,12 @@ export const MaquinaCard: React.FC<MaquinaCardProps> = ({
                 onChange={(e) => handleInputChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onFocus={() => {
-                  if (onActiveInput) onActiveInput();
                   if (query.trim().length >= 1) {
                     reposicionarLista();
                     setDropdownVisible(true);
                   }
                 }}
-                onClick={() => {
-                  if (onActiveInput) onActiveInput();
-                }}
-                inputMode={nativeKbdOpen ? "text" : undefined}
               />
-
-              {/* Botón de teclado virtual (visible en Tablet) */}
-              <button
-                type="button"
-                className="input-kbd-btn"
-                onClick={handleToggleNativeKbd}
-                title="Abrir teclado completo del dispositivo"
-              >
-                ⌨️
-              </button>
 
               {dropdownVisible && (
                 <div
@@ -257,7 +215,7 @@ export const MaquinaCard: React.FC<MaquinaCardProps> = ({
                   )}
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
       </div>

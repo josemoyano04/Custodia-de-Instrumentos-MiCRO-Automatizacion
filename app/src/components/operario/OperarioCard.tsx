@@ -7,9 +7,6 @@ interface OperarioCardProps {
   operarioSeleccionado: Operario | null;
   modo: "retiro" | "devolucion";
   onSeleccionarOperario: (operario: Operario | null) => void;
-  onActiveInput?: () => void;
-  externalQuery?: string;
-  onExternalQueryChange?: (val: string) => void;
 }
 
 export const OperarioCard: React.FC<OperarioCardProps> = ({
@@ -17,18 +14,12 @@ export const OperarioCard: React.FC<OperarioCardProps> = ({
   operariosHabilitados,
   operarioSeleccionado,
   modo: _modo,
-  onSeleccionarOperario,
-  onActiveInput,
-  externalQuery,
-  onExternalQueryChange
+  onSeleccionarOperario
 }) => {
-  const [internalQuery, setInternalQuery] = useState<string>("");
-  const query = externalQuery !== undefined ? externalQuery : internalQuery;
-
+  const [query, setQuery] = useState<string>("");
   const [dropdownVisible, setDropdownVisible] = useState<boolean>(false);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
   const [modalNoHabilitado, setModalNoHabilitado] = useState<Operario | null>(null);
-  const [nativeKbdOpen, setNativeKbdOpen] = useState<boolean>(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -68,16 +59,8 @@ export const OperarioCard: React.FC<OperarioCardProps> = ({
     }
   }, [query, operarioSeleccionado]);
 
-  const setQueryValue = (val: string) => {
-    if (onExternalQueryChange) {
-      onExternalQueryChange(val);
-    } else {
-      setInternalQuery(val);
-    }
-  };
-
   const handleInputChange = (val: string) => {
-    setQueryValue(val);
+    setQuery(val);
   };
 
   const handleSelectOperario = (op: Operario) => {
@@ -87,8 +70,7 @@ export const OperarioCard: React.FC<OperarioCardProps> = ({
     );
 
     setDropdownVisible(false);
-    setQueryValue("");
-    setNativeKbdOpen(false);
+    setQuery("");
 
     if (!estaHabilitado) {
       onSeleccionarOperario(null);
@@ -102,8 +84,7 @@ export const OperarioCard: React.FC<OperarioCardProps> = ({
   const handleDeselect = (e: React.MouseEvent) => {
     e.stopPropagation();
     onSeleccionarOperario(null);
-    setQueryValue("");
-    setNativeKbdOpen(false);
+    setQuery("");
   };
 
   const cleanQ = query.trim().toUpperCase();
@@ -130,14 +111,6 @@ export const OperarioCard: React.FC<OperarioCardProps> = ({
       if (filtered.length > 0) {
         handleSelectOperario(filtered[0]);
       }
-    }
-  };
-
-  const handleToggleNativeKbd = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setNativeKbdOpen(true);
-    if (inputRef.current) {
-      inputRef.current.focus();
     }
   };
 
@@ -174,7 +147,7 @@ export const OperarioCard: React.FC<OperarioCardProps> = ({
               </button>
             </div>
           ) : (
-            <div className="input-with-kbd-btn">
+            <>
               <input
                 ref={inputRef}
                 id="inp-leg"
@@ -184,28 +157,13 @@ export const OperarioCard: React.FC<OperarioCardProps> = ({
                 onChange={(e) => handleInputChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onFocus={() => {
-                  if (onActiveInput) onActiveInput();
                   if (query.trim().length >= 1) {
                     reposicionarLista();
                     setDropdownVisible(true);
                   }
                 }}
-                onClick={() => {
-                  if (onActiveInput) onActiveInput();
-                }}
-                inputMode={nativeKbdOpen ? "text" : undefined}
                 autoFocus
               />
-
-              {/* Botón de teclado virtual (visible en Tablet) */}
-              <button
-                type="button"
-                className="input-kbd-btn"
-                onClick={handleToggleNativeKbd}
-                title="Abrir teclado completo del dispositivo"
-              >
-                ⌨️
-              </button>
 
               {dropdownVisible && (
                 <div
@@ -238,7 +196,7 @@ export const OperarioCard: React.FC<OperarioCardProps> = ({
                   )}
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
 

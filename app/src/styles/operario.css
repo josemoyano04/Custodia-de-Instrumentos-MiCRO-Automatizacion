@@ -876,54 +876,6 @@ input:disabled {
   border-radius: 10px !important;
 }
 
-/* BOTÓN DE TECLADO NATIVO DENTRO DE LOS INPUTS (TABLET ONLY) */
-.input-with-kbd-btn {
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 100%;
-}
-
-.input-with-kbd-btn input {
-  padding-right: 44px !important;
-}
-
-.input-kbd-btn {
-  display: none;
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 32px;
-  height: 32px;
-  border-radius: 7px;
-  background: var(--surface-hover);
-  border: 1px solid var(--border);
-  color: var(--blue);
-  cursor: pointer;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  transition: all .15s ease;
-  z-index: 3;
-}
-
-.input-kbd-btn:hover {
-  background: var(--info-bg);
-  border-color: var(--blue);
-}
-
-.input-kbd-btn:active {
-  transform: translateY(-50%) scale(0.95);
-}
-
-/* Mostrar botón de teclado nativo en Tablet / Touch y ocultar en PC */
-@media (pointer: coarse) and (min-width: 641px) {
-  .input-kbd-btn {
-    display: flex;
-  }
-}
-
 /* En celulares ajustar buscador de instrumentos */
 @media (max-width: 640px) {
   .inst-search-input {

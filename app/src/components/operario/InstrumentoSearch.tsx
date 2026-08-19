@@ -9,9 +9,6 @@ interface InstrumentoSearchProps {
   carrito: InstrumentoSeleccionado[];
   onAgregarAlCarrito: (inst: Instrumento) => void;
   onRetry: () => void;
-  onActiveInput?: () => void;
-  externalQuery?: string;
-  onExternalQueryChange?: (val: string) => void;
 }
 
 export const InstrumentoSearch: React.FC<InstrumentoSearchProps> = ({
@@ -21,17 +18,11 @@ export const InstrumentoSearch: React.FC<InstrumentoSearchProps> = ({
   disabled,
   carrito,
   onAgregarAlCarrito,
-  onRetry,
-  onActiveInput,
-  externalQuery,
-  onExternalQueryChange
+  onRetry
 }) => {
-  const [internalQuery, setInternalQuery] = useState<string>("");
-  const query = externalQuery !== undefined ? externalQuery : internalQuery;
-
+  const [query, setQuery] = useState<string>("");
   const [dropdownVisible, setDropdownVisible] = useState<boolean>(false);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
-  const [nativeKbdOpen, setNativeKbdOpen] = useState<boolean>(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -63,16 +54,8 @@ export const InstrumentoSearch: React.FC<InstrumentoSearchProps> = ({
     }
   }, [query]);
 
-  const setQueryValue = (val: string) => {
-    if (onExternalQueryChange) {
-      onExternalQueryChange(val);
-    } else {
-      setInternalQuery(val);
-    }
-  };
-
   const handleInputChange = (val: string) => {
-    setQueryValue(val);
+    setQuery(val);
   };
 
   const filteredItems = React.useMemo(() => {
@@ -85,29 +68,28 @@ export const InstrumentoSearch: React.FC<InstrumentoSearchProps> = ({
 
   const handleSelect = (inst: Instrumento) => {
     onAgregarAlCarrito(inst);
-    setQueryValue("");
+    setQuery("");
     setDropdownVisible(false);
-    setNativeKbdOpen(false);
   };
 
   const estaEnCarrito = (cod: string) => {
     return carrito.some(x => x.cod === cod);
   };
 
-  const handleToggleNativeKbd = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setNativeKbdOpen(true);
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  };
-
   return (
     <div className="card">
       <div className="ctop"></div>
       <div className="cbody">
-        <div className="clabel" style={{ justifyContent: "space-between" }}>
-          <span>Buscador de Instrumentos</span>
+        <div
+          className="clabel"
+          style={{
+            justifyContent: "space-between",
+            fontSize: "13px",
+            letterSpacing: "0.8px",
+            fontWeight: 800
+          }}
+        >
+          <span>BUSCADOR DE INSTRUMENTOS</span>
           <span className="inst-count">
             {instrumentos.length ? `${instrumentos.length} disponibles` : ""}
           </span>
@@ -143,7 +125,7 @@ export const InstrumentoSearch: React.FC<InstrumentoSearchProps> = ({
         )}
 
         {!loading && !error && (
-          <div className="acwrap input-with-kbd-btn">
+          <div className="acwrap">
             <input
               ref={inputRef}
               type="text"
@@ -153,28 +135,12 @@ export const InstrumentoSearch: React.FC<InstrumentoSearchProps> = ({
               value={query}
               onChange={(e) => handleInputChange(e.target.value)}
               onFocus={() => {
-                if (onActiveInput) onActiveInput();
                 if (query.trim().length >= 2) {
                   reposicionarLista();
                   setDropdownVisible(true);
                 }
               }}
-              onClick={() => {
-                if (onActiveInput) onActiveInput();
-              }}
-              inputMode={nativeKbdOpen ? "text" : undefined}
             />
-
-            {/* Botón de teclado virtual (visible en Tablet) */}
-            <button
-              type="button"
-              className="input-kbd-btn"
-              onClick={handleToggleNativeKbd}
-              title="Abrir teclado completo del dispositivo"
-              style={{ height: "38px", width: "38px", fontSize: "17px" }}
-            >
-              ⌨️
-            </button>
 
             {dropdownVisible && (
               <div

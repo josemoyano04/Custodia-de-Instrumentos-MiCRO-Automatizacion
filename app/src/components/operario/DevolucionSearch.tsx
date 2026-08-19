@@ -12,9 +12,6 @@ interface DevolucionSearchProps {
   onSeleccionarTodos: (items: InstrumentoSeleccionado[]) => void;
   onDeseleccionarTodos: () => void;
   onRefresh: () => void;
-  onActiveInput?: () => void;
-  externalQuery?: string;
-  onExternalQueryChange?: (val: string) => void;
 }
 
 export const DevolucionSearch: React.FC<DevolucionSearchProps> = ({
@@ -27,23 +24,10 @@ export const DevolucionSearch: React.FC<DevolucionSearchProps> = ({
   onToggleDevolucionItem,
   onSeleccionarTodos,
   onDeseleccionarTodos,
-  onRefresh,
-  onActiveInput,
-  externalQuery,
-  onExternalQueryChange
+  onRefresh
 }) => {
-  const [internalTerm, setInternalTerm] = useState<string>("");
-  const searchTerm = externalQuery !== undefined ? externalQuery : internalTerm;
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [legajoConflictMsg, setLegajoConflictMsg] = useState<string | null>(null);
-  const [nativeKbdOpen, setNativeKbdOpen] = useState<boolean>(false);
-
-  const setSearchTerm = (val: string) => {
-    if (onExternalQueryChange) {
-      onExternalQueryChange(val);
-    } else {
-      setInternalTerm(val);
-    }
-  };
 
   // Enriquecer movimientos con nombres de instrumento y datos de quién retiró
   const itemsEnUso: InstrumentoSeleccionado[] = movimientosEnUso.map(m => {
@@ -73,7 +57,7 @@ export const DevolucionSearch: React.FC<DevolucionSearchProps> = ({
       return false;
     }
 
-    // Filtro por Máquina
+    // Filtro por Máquina o Sector
     if (filtroMaquinaNum !== null) {
       const maqText = mov.maquina || "";
       const matchesMaq = maqText.toUpperCase().includes(filtroMaquinaNum.toUpperCase());
@@ -114,30 +98,39 @@ export const DevolucionSearch: React.FC<DevolucionSearchProps> = ({
     if (todosSeleccionados) {
       onDeseleccionarTodos();
     } else {
-      // Verificar si en filtered hay múltiples legajos
-      const legajosDistintos = Array.from(new Set(filtered.map(f => f._quienRetiro?.legajo).filter(Boolean)));
-      if (legajosDistintos.length > 1) {
-        // Seleccionar solo los del primer legajo
-        const targetLeg = legajosDistintos[0];
-        const soloMismoLeg = filtered.filter(f => f._quienRetiro?.legajo === targetLeg);
-        setLegajoConflictMsg(`Se seleccionaron solo los instrumentos del Legajo ${targetLeg} para mantener la devolución por operario único.`);
-        setTimeout(() => setLegajoConflictMsg(null), 4500);
-        onSeleccionarTodos(soloMismoLeg);
-      } else {
-        setLegajoConflictMsg(null);
-        onSeleccionarTodos(filtered);
+      if (filtered.length === 0) return;
+
+      // Validar si todos los items filtrados pertenecen al mismo legajo
+      const primerLegajo = filtered[0]._quienRetiro?.legajo;
+      const tieneVariosLegajos = filtered.some(f => f._quienRetiro?.legajo !== primerLegajo);
+
+      if (tieneVariosLegajos) {
+        setLegajoConflictMsg("Para seleccionar todos, filtrá previamente por un operario específico ya que los instrumentos pertenecen a distintos legajos.");
+        setTimeout(() => setLegajoConflictMsg(null), 5000);
+        return;
       }
+
+      setLegajoConflictMsg(null);
+      onSeleccionarTodos(filtered);
     }
   };
 
   return (
-    <div className="card dev-search-card">
-      <div className="ctop" style={{ background: "linear-gradient(90deg, #009657, #007a46)" }}></div>
+    <div className="card" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+      <div className="ctop"></div>
       <div className="cbody" style={{ display: "flex", flexDirection: "column", gap: "8px", height: "100%", overflow: "hidden" }}>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
-          <div className="clabel" style={{ marginBottom: 0 }}>
-            Instrumentos en Uso para Devolución
+          <div
+            className="clabel"
+            style={{
+              marginBottom: 0,
+              fontSize: "13px",
+              letterSpacing: "0.8px",
+              fontWeight: 800
+            }}
+          >
+            INSTRUMENTOS EN USO PARA DEVOLUCIÓN
           </div>
           <button
             type="button"
@@ -158,31 +151,35 @@ export const DevolucionSearch: React.FC<DevolucionSearchProps> = ({
         )}
 
         {/* Input de Búsqueda Rápida */}
-        <div className="input-with-kbd-btn" style={{ flexShrink: 0 }}>
+        <div style={{ position: "relative", flexShrink: 0 }}>
           <input
             type="text"
             className="inst-search-input"
             placeholder="Buscar por código, instrumento o legajo…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            onFocus={() => {
-              if (onActiveInput) onActiveInput();
-            }}
-            onClick={() => {
-              if (onActiveInput) onActiveInput();
-            }}
-            inputMode={nativeKbdOpen ? "text" : undefined}
+            style={{ paddingRight: "34px" }}
           />
-          {/* Botón de teclado virtual (visible en Tablet) */}
-          <button
-            type="button"
-            className="input-kbd-btn"
-            onClick={() => setNativeKbdOpen(true)}
-            title="Abrir teclado completo del dispositivo"
-            style={{ height: "38px", width: "38px", fontSize: "17px" }}
-          >
-            ⌨️
-          </button>
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm("")}
+              style={{
+                position: "absolute",
+                right: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "transparent",
+                border: "none",
+                color: "var(--muted)",
+                cursor: "pointer",
+                fontWeight: 700,
+                fontSize: "14px"
+              }}
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         {/* Barra de conteo y botón Seleccionar Todos */}
@@ -195,91 +192,72 @@ export const DevolucionSearch: React.FC<DevolucionSearchProps> = ({
           {filtered.length > 0 && (
             <button
               type="button"
+              className="btn-vaciar"
               onClick={handleToggleAll}
-              style={{
-                background: todosSeleccionados ? "var(--surface-hover)" : "rgba(0, 150, 87, 0.12)",
-                border: "1px solid rgba(0, 150, 87, 0.3)",
-                color: "var(--ok)",
-                borderRadius: "14px",
-                padding: "3px 10px",
-                fontSize: "11px",
-                fontWeight: 800,
-                cursor: "pointer"
-              }}
+              style={{ color: "var(--blue)", fontWeight: 700 }}
             >
-              {todosSeleccionados ? "Deseleccionar todos" : "✓ Seleccionar todos"}
+              {todosSeleccionados ? "Deseleccionar todos" : "Seleccionar todos"}
             </button>
           )}
         </div>
 
-        {/* Lista scrolleable dedicada de instrumentos en uso */}
-        <div className="dev-in-use-list">
+        {/* Lista de Instrumentos en Uso */}
+        <div className="dev-list-scroll" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
           {loading ? (
-            <div className="inst-loading">Cargando instrumentos en uso…</div>
+            <div className="inst-loading" style={{ display: "block" }}>
+              <div className="spinner-sm"></div>Cargando instrumentos en uso…
+            </div>
           ) : filtered.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "24px 10px", color: "var(--soft)", fontSize: "12px" }}>
-              {movimientosEnUso.length === 0
-                ? "No hay instrumentos en uso actualmente ✓"
-                : "No se encontraron instrumentos con los filtros seleccionados."}
+            <div className="empty-cart" style={{ padding: "20px 0" }}>
+              <span className="empty-ico">🔍</span>
+              <p>No se encontraron instrumentos en uso con los filtros actuales</p>
             </div>
           ) : (
             filtered.map((item, idx) => {
-              const mov = movimientosEnUso.find(m => m.codInstrumento === item.cod);
-              const isSelected = carrito.some(c => c.cod === item.cod);
+              const seleccionado = carrito.some(c => c.cod === item.cod);
+              const quien = item._quienRetiro;
 
               return (
                 <div
-                  key={`${item.cod}_${item.nom}_${idx}`}
-                  className={`dev-item-card ${isSelected ? "selected" : ""}`}
+                  key={`${item.cod}_${idx}`}
+                  className={`dev-item ${seleccionado ? "selected" : ""}`}
                   onClick={() => handleToggleItemWithLegajoCheck(item)}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, minWidth: 0 }}>
-                    {/* Checkbox visual */}
-                    <div className={`dev-checkbox ${isSelected ? "checked" : ""}`}>
-                      {isSelected && "✓"}
+                  <div className="dev-chk">
+                    <input
+                      type="checkbox"
+                      checked={seleccionado}
+                      onChange={() => {}}
+                      style={{ cursor: "pointer", width: "16px", height: "16px" }}
+                    />
+                  </div>
+
+                  <div className="dev-info" style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span className="dev-cod mono">{item.cod}</span>
+                      <span className="dev-nom">{item.nom}</span>
                     </div>
 
-                    <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <span className="mono" style={{ fontSize: "11.5px", color: "var(--blue-d)" }}>
-                          {item.cod}
+                    <div className="dev-meta" style={{ fontSize: "11px", color: "var(--soft)", marginTop: "2px" }}>
+                      {quien && (
+                        <span>
+                          Retirado por: <strong>{quien.nombre}</strong> (Leg. {quien.legajo})
+                          {quien.maquina ? ` · ${quien.maquina}` : ""}
                         </span>
-                        <span style={{ fontSize: "10.5px", color: "var(--soft)" }}>
-                          · {item.sec || "Sin sector"}
-                        </span>
-                      </div>
-
-                      <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {item.nom}
-                      </div>
-
-                      {mov && (
-                        <div style={{ fontSize: "10.5px", color: "var(--muted)", marginTop: "2px" }}>
-                          Retirado por: <strong>Leg. {mov.legajo}{mov.nombre ? ` (${mov.nombre})` : ""}</strong>
-                          {mov.maquina ? ` · Máq. ${mov.maquina}` : ""}
-                        </div>
                       )}
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    className={`btn-add-dev ${isSelected ? "added" : ""}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleItemWithLegajoCheck(item);
-                    }}
-                  >
-                    {isSelected ? "En lista ✓" : "+ Agregar"}
-                  </button>
+                  {seleccionado && (
+                    <span className="badge bg" style={{ marginLeft: "auto", flexShrink: 0 }}>
+                      A devolver
+                    </span>
+                  )}
                 </div>
               );
             })
           )}
-          {/* Espacio inferior de resguardo */}
-          <div style={{ height: "40px", flexShrink: 0, pointerEvents: "none" }}></div>
         </div>
-
       </div>
     </div>
   );
