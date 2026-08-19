@@ -66,5 +66,18 @@ export interface PinRegistro {
   ultimoUso?: string;
 }
 
+export interface OperarioHabilitado {
+  legajo: number;
+  nombre: string;
+  sector: string;
+  habilitado: boolean;
+  pin_hash?: string;
+  pin_bloqueado?: boolean;
+  pin_intentos?: number;
+  fechaAltaPin?: string;
+  ultimoUsoPin?: string;
+  created_at?: string;
+}
+
 export type VistaActual = "op" | "adm";
 

@@ -1,4 +1,4 @@
-import type { Operario, Instrumento, Maquina, Movimiento, VencimientoCalibracion, PinRegistro } from "../types";
+import type { Operario, OperarioHabilitado, Instrumento, Maquina, Movimiento, VencimientoCalibracion, PinRegistro } from "../types";
 
 import { supabase } from "./supabaseClient";
 import { APP_CONFIG } from "../config/appConfig";
@@ -107,7 +107,22 @@ export const LEGAJOS: Operario[] = [
   { leg: 53, nombre: "SPINA SEBASTIAN", sector: "CILINDROS" }
 ];
 
+export const SECTORES_PLANTA: Maquina[] = [
+  { num: "", desc: "CALIDAD", loc: "Sector Calidad" },
+  { num: "", desc: "PMPP", loc: "Sector Mecanizado PMPP" },
+  { num: "", desc: "MATRICERIA", loc: "Sector Matricería" },
+  { num: "", desc: "CILINDROS", loc: "Sector Cilindros" },
+  { num: "", desc: "INOFER", loc: "Sector Inofer" },
+  { num: "", desc: "TECNOVA", loc: "Sector Tecnova" },
+  { num: "", desc: "OF. TECNICA", loc: "Oficina Técnica" },
+  { num: "", desc: "MONTAJE", loc: "Sector Montaje" },
+  { num: "", desc: "DEPOSITO", loc: "Depósito Central" },
+  { num: "", desc: "MANTENIMIENTO", loc: "Sector Mantenimiento" },
+  { num: "", desc: "RECEPCION MATERIALES", loc: "Recepción de Materiales" }
+];
+
 export const MAQUINAS: Maquina[] = [
+  ...SECTORES_PLANTA,
   { num: "1", desc: "MAQ. ESP. SIERRA CORTA TUBO /ANILLOS", loc: "PMPP" },
   { num: "2", desc: "MAQ. ESP. RECTIFICADORA SIN CENTRO", loc: "PMPP" },
   { num: "4", desc: "MAQ. ESP. RANURADORA TRAGANTES", loc: "PMPP" },
@@ -218,9 +233,13 @@ export async function callApi(body: any) {
       body: JSON.stringify(body),
       redirect: "follow"
     });
-    return await res.json();
-  } catch (err) {
-    console.error("API call error:", err);
+    if (!res.ok) {
+      console.error(`❌ [HTTP-GAS] Error en respuesta HTTP: Status ${res.status} ${res.statusText}`);
+    }
+    const data = await res.json();
+    return data;
+  } catch (err: any) {
+    console.error("❌ [HTTP-GAS] Excepción en fetch hacia Google Apps Script:", err);
     throw err;
   }
 }
@@ -237,7 +256,7 @@ export async function fetchInstrumentos(): Promise<Instrumento[]> {
 
   if (mode === "SUPABASE") {
     if (!supabase) {
-      throw new Error("Modo SUPABASE forzado pero las credenciales (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY) no están configuradas.");
+      throw new Error("Modo SUPABASE forzado pero las credenciales (VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY) no están configuradas.");
     }
     const { data, error } = await supabase.from("instrumentos").select("*");
     if (error) throw new Error(`Error Supabase: ${error.message}`);
@@ -479,6 +498,153 @@ export async function fetchPinesOperarios(): Promise<PinRegistro[]> {
   }
 
   return [];
+}
+
+// ============================================================================
+// MÓDULO: GESTIÓN DE OPERARIOS HABILITADOS Y PINES
+// ============================================================================
+
+/**
+ * Cargar nómina completa de operarios habilitados cruzada con el estado de sus PINs.
+ * En estado inicial, la base de datos comienza vacía (0 operarios) hasta que el Administrador dé altas.
+ */
+export async function fetchOperariosHabilitados(): Promise<OperarioHabilitado[]> {
+  if (supabase) {
+    try {
+      // 1. Obtener operarios_habilitados y pines_operarios en paralelo
+      const [resOps, resPines] = await Promise.all([
+        supabase.from("operarios_habilitados").select("*").order("legajo"),
+        supabase.from("pines_operarios").select("*")
+      ]);
+
+      const opsData = resOps.data || [];
+      const pinesData = resPines.data || [];
+
+      // Mapa de PINs por legajo
+      const pinMap = new Map<number, any>();
+      for (const p of pinesData) {
+        pinMap.set(p.legajo, p);
+      }
+
+      return opsData.map(row => {
+        const pinInfo = pinMap.get(row.legajo);
+        return {
+          legajo: row.legajo,
+          nombre: row.nombre,
+          sector: row.sector,
+          habilitado: Boolean(row.habilitado),
+          pin_hash: pinInfo?.pin_hash,
+          pin_bloqueado: pinInfo ? Boolean(pinInfo.bloqueado) : undefined,
+          pin_intentos: pinInfo?.intentos_fallidos || 0,
+          fechaAltaPin: pinInfo?.created_at
+            ? new Date(pinInfo.created_at).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" })
+            : undefined,
+          ultimoUsoPin: pinInfo?.ultimo_uso
+            ? new Date(pinInfo.ultimo_uso).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" })
+            : undefined,
+          created_at: row.created_at
+        };
+      });
+    } catch (e) {
+      console.warn("Error al cargar operarios_habilitados desde Supabase:", e);
+    }
+  }
+
+  // En estado inicial o sin conexión, la lista de habilitados inicia vacía
+  return [];
+}
+
+/**
+ * Dar de alta o editar un operario en operarios_habilitados
+ */
+export async function guardarOperarioHabilitado(op: { legajo: number; nombre: string; sector: string; habilitado?: boolean }): Promise<{ ok: boolean; error?: string }> {
+  if (supabase) {
+    try {
+      const { error } = await supabase.from("operarios_habilitados").upsert({
+        legajo: op.legajo,
+        nombre: op.nombre.trim().toUpperCase(),
+        sector: op.sector.trim().toUpperCase(),
+        habilitado: op.habilitado !== undefined ? op.habilitado : true,
+        created_at: new Date().toISOString()
+      }, { onConflict: "legajo" });
+
+      if (!error) return { ok: true };
+      return { ok: false, error: error.message };
+    } catch (e: any) {
+      return { ok: false, error: e.message || "Error al guardar operario en Supabase" };
+    }
+  }
+  return { ok: true };
+}
+
+/**
+ * Conmutar permiso de retiro (Habilitar / Inhabilitar)
+ */
+export async function toggleHabilitacionOperario(legajo: number, habilitado: boolean): Promise<{ ok: boolean; error?: string }> {
+  if (supabase) {
+    try {
+      const { error } = await supabase
+        .from("operarios_habilitados")
+        .update({ habilitado })
+        .eq("legajo", legajo);
+
+      if (!error) return { ok: true };
+      return { ok: false, error: error.message };
+    } catch (e: any) {
+      return { ok: false, error: e.message || "Error al actualizar estado en Supabase" };
+    }
+  }
+  return { ok: true };
+}
+
+/**
+ * Eliminar operario del padrón de operarios habilitados
+ */
+export async function eliminarOperarioHabilitado(legajo: number): Promise<{ ok: boolean; error?: string }> {
+  if (supabase) {
+    try {
+      // Eliminar de operarios_habilitados y de pines_operarios
+      const [resOp, resPin] = await Promise.all([
+        supabase.from("operarios_habilitados").delete().eq("legajo", legajo),
+        supabase.from("pines_operarios").delete().eq("legajo", legajo)
+      ]);
+
+      if (resOp.error) return { ok: false, error: resOp.error.message };
+      if (resPin.error) console.warn("Error eliminando pin de operario:", resPin.error);
+      return { ok: true };
+    } catch (e: any) {
+      return { ok: false, error: e.message || "Error al eliminar operario en Supabase" };
+    }
+  }
+  return { ok: true };
+}
+
+/**
+ * Validar si un legajo está registrado y habilitado para retiro
+ */
+export async function verificarOperarioPermitido(legajo: number): Promise<{ permitido: boolean; operario?: OperarioHabilitado; motivo?: string }> {
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from("operarios_habilitados")
+        .select("*")
+        .eq("legajo", legajo)
+        .maybeSingle();
+
+      if (!error && data) {
+        if (data.habilitado) {
+          return { permitido: true, operario: data };
+        } else {
+          return { permitido: false, operario: data, motivo: "Operario inhabilitado para retiro de instrumentos" };
+        }
+      }
+      return { permitido: false, motivo: "Operario no registrado en el padrón de autorizados" };
+    } catch (e) {
+      console.warn("Error en verificarOperarioPermitido:", e);
+    }
+  }
+
+  return { permitido: false, motivo: "Operario no registrado en el padrón de autorizados" };
 }
 
 // Blanquear PIN de operario respetando APP_CONFIG.dataSourceMode

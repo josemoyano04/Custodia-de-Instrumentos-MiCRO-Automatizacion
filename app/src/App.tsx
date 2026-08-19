@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import type { Operario, Instrumento, InstrumentoSeleccionado, Maquina, VistaActual, Movimiento } from "./types";
+import type { Operario, OperarioHabilitado, Instrumento, InstrumentoSeleccionado, Maquina, VistaActual, Movimiento } from "./types";
 import {
   LEGAJOS,
   MAQUINAS,
   fetchInstrumentos,
   fetchMovimientosEnUso,
+  fetchOperariosHabilitados,
   verificarDisponibilidad,
   getPinEstado,
   setPin,
@@ -14,18 +15,19 @@ import {
 } from "./services/dataService";
 import { sincronizarGoogleSheetsConSupabase } from "./services/syncService";
 
-import { Header } from "./components/Header";
-import { ModeSelector, type ModoOperacion } from "./components/ModeSelector";
-import { OperarioCard } from "./components/OperarioCard";
-import { InstrumentoSearch } from "./components/InstrumentoSearch";
-import { DevolucionSearch } from "./components/DevolucionSearch";
-import { SelectedTray } from "./components/SelectedTray";
-import { MaquinaCard } from "./components/MaquinaCard";
-import { ActionButtons } from "./components/ActionButtons";
-import { PinModal } from "./components/PinModal";
-import { ConfirmModal } from "./components/ConfirmModal";
-import { SuccessModal } from "./components/SuccessModal";
-import { AdminDashboard } from "./components/AdminDashboard";
+import { Header } from "./components/shared/Header";
+import { ModeSelector, type ModoOperacion } from "./components/operario/ModeSelector";
+import { OperarioCard } from "./components/operario/OperarioCard";
+import { InstrumentoSearch } from "./components/operario/InstrumentoSearch";
+import { DevolucionSearch } from "./components/operario/DevolucionSearch";
+import { SelectedTray } from "./components/operario/SelectedTray";
+import { MaquinaCard } from "./components/operario/MaquinaCard";
+import { AppNumericKeypad, type TargetInputType } from "./components/operario/AppNumericKeypad";
+import { ActionButtons } from "./components/operario/ActionButtons";
+import { PinModal } from "./components/shared/PinModal";
+import { ConfirmModal } from "./components/shared/ConfirmModal";
+import { SuccessModal } from "./components/shared/SuccessModal";
+import { AdminDashboard } from "./components/admin/AdminDashboard";
 
 import "./styles/variables.css";
 import "./styles/global.css";
@@ -65,6 +67,7 @@ export function App() {
 
   const [instrumentos, setInstrumentos] = useState<Instrumento[]>([]);
   const [movimientosEnUso, setMovimientosEnUso] = useState<Movimiento[]>([]);
+  const [operariosHabilitados, setOperariosHabilitados] = useState<OperarioHabilitado[]>([]);
   const [loadingInst, setLoadingInst] = useState<boolean>(true);
   const [loadingEnUso, setLoadingEnUso] = useState<boolean>(false);
   const [errorInst, setErrorInst] = useState<boolean>(false);
@@ -73,6 +76,42 @@ export function App() {
   const [operario, setOperario] = useState<Operario | null>(null);
   const [carrito, setCarrito] = useState<InstrumentoSeleccionado[]>([]);
   const [maquinaSel, setMaquinaSel] = useState<Maquina | null>(null);
+
+  // Estados para teclado numérico en pantalla
+  const [activeInputTarget, setActiveInputTarget] = useState<TargetInputType>("operario");
+  const [queryOperario, setQueryOperario] = useState<string>("");
+  const [queryMaquina, setQueryMaquina] = useState<string>("");
+  const [queryInstrumento, setQueryInstrumento] = useState<string>("");
+
+  const handleKeypadPress = (char: string) => {
+    if (activeInputTarget === "operario") {
+      setQueryOperario(prev => prev + char);
+    } else if (activeInputTarget === "maquina") {
+      setQueryMaquina(prev => prev + char);
+    } else if (activeInputTarget === "instrumento") {
+      setQueryInstrumento(prev => prev + char);
+    }
+  };
+
+  const handleKeypadBackspace = () => {
+    if (activeInputTarget === "operario") {
+      setQueryOperario(prev => prev.slice(0, -1));
+    } else if (activeInputTarget === "maquina") {
+      setQueryMaquina(prev => prev.slice(0, -1));
+    } else if (activeInputTarget === "instrumento") {
+      setQueryInstrumento(prev => prev.slice(0, -1));
+    }
+  };
+
+  const handleKeypadClear = () => {
+    if (activeInputTarget === "operario") {
+      setQueryOperario("");
+    } else if (activeInputTarget === "maquina") {
+      setQueryMaquina("");
+    } else if (activeInputTarget === "instrumento") {
+      setQueryInstrumento("");
+    }
+  };
 
   // Alertas y Modales
   const [resAlert, setResAlert] = useState<{ type: "ok" | "warn"; text: string } | null>(null);
@@ -86,6 +125,15 @@ export function App() {
   const [pinErr, setPinErr] = useState<string>("");
   const [pinResolver, setPinResolver] = useState<((val: string | null) => void) | null>(null);
 
+  const cargarOperariosHabilitados = async () => {
+    try {
+      const ops = await fetchOperariosHabilitados();
+      setOperariosHabilitados(ops);
+    } catch (e) {
+      console.warn("Error cargando operarios habilitados:", e);
+    }
+  };
+
   const handleSync = async () => {
     if (isSyncing) return;
     setIsSyncing(true);
@@ -94,7 +142,7 @@ export function App() {
       const res = await sincronizarGoogleSheetsConSupabase();
       if (res.ok) {
         setResAlert({ type: "ok", text: res.mensaje });
-        await Promise.all([cargarDatos(), cargarEnUso()]);
+        await Promise.all([cargarDatos(), cargarEnUso(), cargarOperariosHabilitados()]);
       } else {
         setResAlert({ type: "warn", text: res.mensaje });
       }
@@ -108,8 +156,12 @@ export function App() {
     setLoadingInst(true);
     setErrorInst(false);
     try {
-      const data = await fetchInstrumentos();
+      const [data, ops] = await Promise.all([
+        fetchInstrumentos(),
+        fetchOperariosHabilitados()
+      ]);
       setInstrumentos(data);
+      setOperariosHabilitados(ops);
       setLoadingInst(false);
     } catch (e) {
       console.error(e);
@@ -251,6 +303,14 @@ export function App() {
     const leg = legajoTarget || (operario ? operario.leg : null);
     if (!leg) return { ok: false, msg: "Seleccioná un operario." };
 
+    // Si estamos en modo retiro, validar que el operario esté habilitado
+    if (modoOp === "retiro") {
+      const opHabilitado = operariosHabilitados.find(o => o.legajo === leg);
+      if (opHabilitado && !opHabilitado.habilitado) {
+        return { ok: false, msg: "⛔ Operario no habilitado para retirar instrumentos. Contactá al Administrador." };
+      }
+    }
+
     let est;
     try {
       est = await getPinEstado(leg);
@@ -339,13 +399,13 @@ export function App() {
       const promesas = carrito.map(item => {
         return tipo === "RET"
           ? registrarRetiro({
-              legajo: opTarget!.leg,
-              nombre: opTarget!.nombre,
-              sector: opTarget!.sector,
-              codInstrumento: item.cod,
-              instrumento: item.nom,
-              maquina: maquinaSel ? `${maquinaSel.num} – ${maquinaSel.desc}` : ""
-            })
+            legajo: opTarget!.leg,
+            nombre: opTarget!.nombre,
+            sector: opTarget!.sector,
+            codInstrumento: item.cod,
+            instrumento: item.nom,
+            maquina: maquinaSel ? (maquinaSel.num ? `${maquinaSel.num} – ${maquinaSel.desc}` : maquinaSel.desc) : ""
+          })
           : registrarDevolucion(item.cod);
       });
 
@@ -389,7 +449,7 @@ export function App() {
         {vistaActual === "op" ? (
           <div className="view on">
             <div className="op-area">
-              
+
               {/* COL IZQUIERDA: Selector Modo + Operario + Máquina */}
               <div className="inst-col">
                 <ModeSelector
@@ -400,21 +460,47 @@ export function App() {
                 <div className="op-inputs-row">
                   <OperarioCard
                     legajos={LEGAJOS}
+                    operariosHabilitados={operariosHabilitados}
                     operarioSeleccionado={operario}
-                    onSeleccionarOperario={setOperario}
+                    modo={modoOp}
+                    onSeleccionarOperario={(op) => {
+                      setOperario(op);
+                      if (op) {
+                        setActiveInputTarget(maquinaSel ? "instrumento" : "maquina");
+                      }
+                    }}
+                    onActiveInput={() => setActiveInputTarget("operario")}
+                    externalQuery={queryOperario}
+                    onExternalQueryChange={setQueryOperario}
                   />
 
                   <MaquinaCard
                     maquinas={MAQUINAS}
                     maquinaSeleccionada={maquinaSel}
-                    onSeleccionarMaquina={setMaquinaSel}
+                    onSeleccionarMaquina={(m) => {
+                      setMaquinaSel(m);
+                      if (m) {
+                        setActiveInputTarget("instrumento");
+                      }
+                    }}
                     visible={true}
-                    label={modoOp === "devolucion" ? "Filtrar Máquina" : "Máquina / Celda"}
+                    label={modoOp === "devolucion" ? "Filtrar Máquina / Sector" : "Máquina / Sector"}
+                    onActiveInput={() => setActiveInputTarget("maquina")}
+                    externalQuery={queryMaquina}
+                    onExternalQueryChange={setQueryMaquina}
                   />
                 </div>
 
+                {/* TECLADO NUMÉRICO (Visible en PC y Tablet) */}
+                {/* <AppNumericKeypad
+                  activeTarget={activeInputTarget}
+                  onKeyPress={handleKeypadPress}
+                  onBackspace={handleKeypadBackspace}
+                  onClear={handleKeypadClear}
+                /> */}
+
                 {resAlert && (
-                  <div className={`alert ${resAlert.type}`} style={{ display: "block" }}>
+                  <div className={`alert ${resAlert.type}`} style={{ display: "block", marginTop: "10px" }}>
                     {resAlert.text}
                   </div>
                 )}
@@ -431,6 +517,9 @@ export function App() {
                     carrito={carrito}
                     onAgregarAlCarrito={handleAgregarAlCarritoRetiro}
                     onRetry={cargarDatos}
+                    onActiveInput={() => setActiveInputTarget("instrumento")}
+                    externalQuery={queryInstrumento}
+                    onExternalQueryChange={setQueryInstrumento}
                   />
                 ) : (
                   <DevolucionSearch
@@ -439,11 +528,14 @@ export function App() {
                     loading={loadingEnUso}
                     carrito={carrito}
                     filtroLegajo={operario ? operario.leg : null}
-                    filtroMaquinaNum={maquinaSel ? maquinaSel.num : null}
+                    filtroMaquinaNum={maquinaSel ? (maquinaSel.num || maquinaSel.desc) : null}
                     onToggleDevolucionItem={handleToggleDevolucionItem}
                     onSeleccionarTodos={handleSeleccionarTodosDevolucion}
                     onDeseleccionarTodos={handleDeseleccionarTodosDevolucion}
                     onRefresh={cargarEnUso}
+                    onActiveInput={() => setActiveInputTarget("instrumento")}
+                    externalQuery={queryInstrumento}
+                    onExternalQueryChange={setQueryInstrumento}
                   />
                 )}
 
@@ -466,7 +558,13 @@ export function App() {
           </div>
         ) : (
           <div className="view on">
-            <AdminDashboard instrumentos={instrumentos} onLogout={() => setVistaActual("op")} />
+            <AdminDashboard
+              instrumentos={instrumentos}
+              onLogout={() => {
+                setVistaActual("op");
+                cargarOperariosHabilitados();
+              }}
+            />
           </div>
         )}
       </div>

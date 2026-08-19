@@ -866,3 +866,86 @@ input:disabled {
     font-size: 12px;
   }
 }
+
+/* BUSCADOR DE INSTRUMENTOS (50% MÁS ALTO Y FUENTE MÁS GRANDE) */
+.inst-search-input {
+  min-height: 56px !important;
+  height: 56px !important;
+  font-size: 15px !important;
+  padding: 0 16px !important;
+  border-radius: 10px !important;
+}
+
+/* BOTÓN DE TECLADO NATIVO DENTRO DE LOS INPUTS (TABLET ONLY) */
+.input-with-kbd-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.input-with-kbd-btn input {
+  padding-right: 44px !important;
+}
+
+.input-kbd-btn {
+  display: none;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  color: var(--blue);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  transition: all .15s ease;
+  z-index: 3;
+}
+
+.input-kbd-btn:hover {
+  background: var(--info-bg);
+  border-color: var(--blue);
+}
+
+.input-kbd-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+/* Mostrar botón de teclado nativo en Tablet / Touch y ocultar en PC */
+@media (pointer: coarse) and (min-width: 641px) {
+  .input-kbd-btn {
+    display: flex;
+  }
+}
+
+/* En celulares ocultar teclado numérico de la app y el botón de teclado */
+@media (max-width: 640px) {
+  .app-numeric-keypad-card {
+    display: none !important;
+  }
+  .input-kbd-btn {
+    display: none !important;
+  }
+  .inst-search-input {
+    min-height: 44px !important;
+    height: 44px !important;
+    font-size: 13px !important;
+  }
+}
+
+/* ESTILOS DEL TECLADO NUMÉRICO */
+.app-pad-key:hover {
+  background: var(--surface-hover) !important;
+  border-color: var(--blue) !important;
+}
+
+.app-pad-key:active {
+  transform: scale(0.96);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
