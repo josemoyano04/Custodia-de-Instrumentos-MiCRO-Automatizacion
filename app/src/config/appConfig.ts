@@ -19,10 +19,33 @@ export interface AppConfig {
   allowRetiroVencido: boolean;
 }
 
+const STORAGE_KEY_ALLOW_RETIRO_VENCIDO = "micro_allow_retiro_vencido";
+
+export function getAllowRetiroVencido(): boolean {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY_ALLOW_RETIRO_VENCIDO);
+    if (stored !== null) {
+      return stored === "true";
+    }
+  } catch (e) {
+    console.warn("Error leyendo localStorage para allowRetiroVencido:", e);
+  }
+  return import.meta.env.VITE_ALLOW_RETIRO_VENCIDO === "true";
+}
+
+export function setAllowRetiroVencido(val: boolean): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_ALLOW_RETIRO_VENCIDO, String(val));
+  } catch (e) {
+    console.warn("Error guardando localStorage para allowRetiroVencido:", e);
+  }
+  APP_CONFIG.allowRetiroVencido = val;
+}
+
 export const APP_CONFIG: AppConfig = {
   dataSourceMode: (import.meta.env.VITE_DATA_SOURCE_MODE as DataSourceMode) || "AUTO",
   scriptUrl: import.meta.env.VITE_SCRIPT_URL || "",
   adminPass: import.meta.env.VITE_ADMIN_PASS || "",
   autoRefreshIntervalMs: 10 * 60 * 1000, // 10 minutos
-  allowRetiroVencido: import.meta.env.VITE_ALLOW_RETIRO_VENCIDO === "true" // solo true si es exactamente "true"
+  allowRetiroVencido: getAllowRetiroVencido()
 };

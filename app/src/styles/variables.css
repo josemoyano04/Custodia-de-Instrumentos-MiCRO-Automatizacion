@@ -18,6 +18,10 @@
   --ok-bg: rgba(0, 185, 107, .12);
   --ok-br: rgba(0, 185, 107, .4);
 
+  --amber: #92610a;
+  --amber-bg: rgba(245, 158, 11, .12);
+  --amber-br: rgba(245, 158, 11, .45);
+
   --warn: #d92b2b;
   --warn-bg: rgba(229, 62, 62, .1);
   --warn-br: rgba(229, 62, 62, .4);
@@ -49,6 +53,10 @@
   --ok: #10b981;
   --ok-bg: rgba(16, 185, 129, .15);
   --ok-br: rgba(16, 185, 129, .4);
+
+  --amber: #fbbf24;
+  --amber-bg: rgba(245, 158, 11, .2);
+  --amber-br: rgba(245, 158, 11, .5);
 
   --warn: #ef4444;
   --warn-bg: rgba(239, 68, 68, .15);
