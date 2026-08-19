@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import type { Instrumento, InstrumentoSeleccionado } from "../types";
+import type { Instrumento, InstrumentoSeleccionado } from "../../types";
 
 interface InstrumentoSearchProps {
   instrumentos: Instrumento[];
@@ -9,6 +9,9 @@ interface InstrumentoSearchProps {
   carrito: InstrumentoSeleccionado[];
   onAgregarAlCarrito: (inst: Instrumento) => void;
   onRetry: () => void;
+  onActiveInput?: () => void;
+  externalQuery?: string;
+  onExternalQueryChange?: (val: string) => void;
 }
 
 export const InstrumentoSearch: React.FC<InstrumentoSearchProps> = ({
@@ -18,11 +21,18 @@ export const InstrumentoSearch: React.FC<InstrumentoSearchProps> = ({
   disabled,
   carrito,
   onAgregarAlCarrito,
-  onRetry
+  onRetry,
+  onActiveInput,
+  externalQuery,
+  onExternalQueryChange
 }) => {
-  const [query, setQuery] = useState<string>("");
+  const [internalQuery, setInternalQuery] = useState<string>("");
+  const query = externalQuery !== undefined ? externalQuery : internalQuery;
+
   const [dropdownVisible, setDropdownVisible] = useState<boolean>(false);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
+  const [nativeKbdOpen, setNativeKbdOpen] = useState<boolean>(false);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const reposicionarLista = () => {
@@ -44,14 +54,25 @@ export const InstrumentoSearch: React.FC<InstrumentoSearchProps> = ({
     return () => window.removeEventListener("resize", handleResize);
   }, [dropdownVisible]);
 
-  const handleInputChange = (val: string) => {
-    setQuery(val);
-    if (val.trim().length >= 2) {
+  useEffect(() => {
+    if (query.trim().length >= 2) {
       reposicionarLista();
       setDropdownVisible(true);
     } else {
       setDropdownVisible(false);
     }
+  }, [query]);
+
+  const setQueryValue = (val: string) => {
+    if (onExternalQueryChange) {
+      onExternalQueryChange(val);
+    } else {
+      setInternalQuery(val);
+    }
+  };
+
+  const handleInputChange = (val: string) => {
+    setQueryValue(val);
   };
 
   const filteredItems = React.useMemo(() => {
@@ -64,12 +85,21 @@ export const InstrumentoSearch: React.FC<InstrumentoSearchProps> = ({
 
   const handleSelect = (inst: Instrumento) => {
     onAgregarAlCarrito(inst);
-    setQuery("");
+    setQueryValue("");
     setDropdownVisible(false);
+    setNativeKbdOpen(false);
   };
 
   const estaEnCarrito = (cod: string) => {
     return carrito.some(x => x.cod === cod);
+  };
+
+  const handleToggleNativeKbd = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNativeKbdOpen(true);
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
 
   return (
@@ -113,21 +143,38 @@ export const InstrumentoSearch: React.FC<InstrumentoSearchProps> = ({
         )}
 
         {!loading && !error && (
-          <div className="acwrap">
+          <div className="acwrap input-with-kbd-btn">
             <input
               ref={inputRef}
               type="text"
+              className="inst-search-input"
               placeholder="Escribí código (ej. 100-040) o descripción para agregar a tu lista…"
               disabled={disabled}
               value={query}
               onChange={(e) => handleInputChange(e.target.value)}
               onFocus={() => {
+                if (onActiveInput) onActiveInput();
                 if (query.trim().length >= 2) {
                   reposicionarLista();
                   setDropdownVisible(true);
                 }
               }}
+              onClick={() => {
+                if (onActiveInput) onActiveInput();
+              }}
+              inputMode={nativeKbdOpen ? "text" : undefined}
             />
+
+            {/* Botón de teclado virtual (visible en Tablet) */}
+            <button
+              type="button"
+              className="input-kbd-btn"
+              onClick={handleToggleNativeKbd}
+              title="Abrir teclado completo del dispositivo"
+              style={{ height: "38px", width: "38px", fontSize: "17px" }}
+            >
+              ⌨️
+            </button>
 
             {dropdownVisible && (
               <div
@@ -144,12 +191,12 @@ export const InstrumentoSearch: React.FC<InstrumentoSearchProps> = ({
                     Sin resultados
                   </div>
                 ) : (
-                  filteredItems.map(item => {
+                  filteredItems.map((item, idx) => {
                     const eu = (item.e || "").trim().toUpperCase();
                     const enCar = estaEnCarrito(item.c);
                     return (
                       <div
-                        key={item.c}
+                        key={`${item.c}_${item.n}_${idx}`}
                         className={`acitem ${enCar ? "in-cart" : ""}`}
                         onClick={() => handleSelect(item)}
                       >

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import type { Operario } from "../types";
+import type { Operario } from "../../types";
 
 interface PinModalProps {
   isOpen: boolean;

@@ -1,5 +1,5 @@
 import React from "react";
-import type { InstrumentoSeleccionado } from "../types";
+import type { InstrumentoSeleccionado } from "../../types";
 
 interface SelectedTrayProps {
   carrito: InstrumentoSeleccionado[];
@@ -87,7 +87,7 @@ export const SelectedTray: React.FC<SelectedTrayProps> = ({
             paddingBottom: "72px"
           }}
         >
-          {carrito.map((item) => {
+          {carrito.map((item, idx) => {
             const isWarn = item._enUso || item._calibVenc;
             const quien = item._quienRetiro;
 
@@ -114,7 +114,7 @@ export const SelectedTray: React.FC<SelectedTrayProps> = ({
             }
 
             return (
-              <div key={item.cod} className={`tray-item ${isWarn ? "warn" : ""}`} style={{ flexShrink: 0 }}>
+              <div key={`${item.cod}_${item.nom}_${idx}`} className={`tray-item ${isWarn ? "warn" : ""}`} style={{ flexShrink: 0 }}>
                 <div className="tray-item-info">
                   <div className="tray-item-cod">{item.cod}</div>
                   <div className="tray-item-nom">{item.nom}</div>

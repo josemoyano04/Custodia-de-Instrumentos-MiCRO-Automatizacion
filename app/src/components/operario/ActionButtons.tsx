@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import type { Operario, InstrumentoSeleccionado, Maquina } from "../types";
+import type { Operario, InstrumentoSeleccionado, Maquina } from "../../types";
 import type { ModoOperacion } from "./ModeSelector";
 
 interface ActionButtonsProps {

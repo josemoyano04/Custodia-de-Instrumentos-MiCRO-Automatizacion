@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import type { Instrumento, InstrumentoSeleccionado, Movimiento } from "../types";
+import type { Instrumento, InstrumentoSeleccionado, Movimiento } from "../../types";
 
 interface DevolucionSearchProps {
   movimientosEnUso: Movimiento[];
@@ -12,6 +12,9 @@ interface DevolucionSearchProps {
   onSeleccionarTodos: (items: InstrumentoSeleccionado[]) => void;
   onDeseleccionarTodos: () => void;
   onRefresh: () => void;
+  onActiveInput?: () => void;
+  externalQuery?: string;
+  onExternalQueryChange?: (val: string) => void;
 }
 
 export const DevolucionSearch: React.FC<DevolucionSearchProps> = ({
@@ -24,10 +27,23 @@ export const DevolucionSearch: React.FC<DevolucionSearchProps> = ({
   onToggleDevolucionItem,
   onSeleccionarTodos,
   onDeseleccionarTodos,
-  onRefresh
+  onRefresh,
+  onActiveInput,
+  externalQuery,
+  onExternalQueryChange
 }) => {
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [internalTerm, setInternalTerm] = useState<string>("");
+  const searchTerm = externalQuery !== undefined ? externalQuery : internalTerm;
   const [legajoConflictMsg, setLegajoConflictMsg] = useState<string | null>(null);
+  const [nativeKbdOpen, setNativeKbdOpen] = useState<boolean>(false);
+
+  const setSearchTerm = (val: string) => {
+    if (onExternalQueryChange) {
+      onExternalQueryChange(val);
+    } else {
+      setInternalTerm(val);
+    }
+  };
 
   // Enriquecer movimientos con nombres de instrumento y datos de quién retiró
   const itemsEnUso: InstrumentoSeleccionado[] = movimientosEnUso.map(m => {
@@ -142,33 +158,31 @@ export const DevolucionSearch: React.FC<DevolucionSearchProps> = ({
         )}
 
         {/* Input de Búsqueda Rápida */}
-        <div style={{ position: "relative", flexShrink: 0 }}>
+        <div className="input-with-kbd-btn" style={{ flexShrink: 0 }}>
           <input
             type="text"
-            placeholder="Buscar por nombre del instrumento o legajo del empleado"
+            className="inst-search-input"
+            placeholder="Buscar por código, instrumento o legajo…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ paddingRight: "30px" }}
+            onFocus={() => {
+              if (onActiveInput) onActiveInput();
+            }}
+            onClick={() => {
+              if (onActiveInput) onActiveInput();
+            }}
+            inputMode={nativeKbdOpen ? "text" : undefined}
           />
-          {searchTerm && (
-            <button
-              type="button"
-              onClick={() => setSearchTerm("")}
-              style={{
-                position: "absolute",
-                right: "8px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                background: "transparent",
-                border: "none",
-                color: "var(--muted)",
-                cursor: "pointer",
-                fontWeight: 700
-              }}
-            >
-              ✕
-            </button>
-          )}
+          {/* Botón de teclado virtual (visible en Tablet) */}
+          <button
+            type="button"
+            className="input-kbd-btn"
+            onClick={() => setNativeKbdOpen(true)}
+            title="Abrir teclado completo del dispositivo"
+            style={{ height: "38px", width: "38px", fontSize: "17px" }}
+          >
+            ⌨️
+          </button>
         </div>
 
         {/* Barra de conteo y botón Seleccionar Todos */}
@@ -209,13 +223,13 @@ export const DevolucionSearch: React.FC<DevolucionSearchProps> = ({
                 : "No se encontraron instrumentos con los filtros seleccionados."}
             </div>
           ) : (
-            filtered.map((item) => {
+            filtered.map((item, idx) => {
               const mov = movimientosEnUso.find(m => m.codInstrumento === item.cod);
               const isSelected = carrito.some(c => c.cod === item.cod);
 
               return (
                 <div
-                  key={item.cod}
+                  key={`${item.cod}_${item.nom}_${idx}`}
                   className={`dev-item-card ${isSelected ? "selected" : ""}`}
                   onClick={() => handleToggleItemWithLegajoCheck(item)}
                 >

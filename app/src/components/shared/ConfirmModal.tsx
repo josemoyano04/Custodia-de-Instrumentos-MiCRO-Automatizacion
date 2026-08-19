@@ -1,6 +1,6 @@
 import React from "react";
-import type { Operario, InstrumentoSeleccionado, Maquina } from "../types";
-import { APP_CONFIG } from "../config/appConfig";
+import type { Operario, InstrumentoSeleccionado, Maquina } from "../../types";
+import { getAllowRetiroVencido } from "../../config/appConfig";
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -30,7 +30,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   const hayVencidos = vencidos.length > 0;
 
   // Si allowRetiroVencido está desactivado, bloquear el retiro
-  const bloqueado = tipo === "RET" && hayVencidos && !APP_CONFIG.allowRetiroVencido;
+  const bloqueado = tipo === "RET" && hayVencidos && !getAllowRetiroVencido();
 
   return (
     <div className={`modal-bg ${isOpen ? "open" : ""}`} style={{ display: isOpen ? "flex" : "none" }}>
@@ -47,8 +47,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           </div>
 
           <div className="confirm-batch-list">
-            {carrito.map((item) => (
-              <div key={item.cod} className="confirm-batch-item">
+            {carrito.map((item, idx) => (
+              <div key={`${item.cod}_${item.nom}_${idx}`} className="confirm-batch-item">
                 <span className="mono" style={{ color: "var(--blue)", fontWeight: 700 }}>
                   {item.cod}
                 </span>
@@ -95,7 +95,11 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
           {tipo === "RET" && maquina && (
             <div style={{ marginTop: "12px", fontSize: "12px", background: "var(--info-bg)", padding: "8px 10px", borderRadius: "8px" }}>
-              Destino: Máquina <strong>{maquina.num}</strong> – {maquina.desc}
+              Destino: {maquina.num ? (
+                <>Máquina <strong>{maquina.num}</strong> – {maquina.desc}</>
+              ) : (
+                <>Sector <strong>{maquina.desc}</strong></>
+              )}
             </div>
           )}
         </div>

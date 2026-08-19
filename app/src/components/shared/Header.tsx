@@ -1,6 +1,6 @@
 import React from "react";
-import microLogo from "../assets/micro-logo.png"
-import type { VistaActual } from "../types";
+import microLogo from "../../assets/micro-logo.png";
+import type { VistaActual } from "../../types";
 
 interface HeaderProps {
   vistaActual: VistaActual;
