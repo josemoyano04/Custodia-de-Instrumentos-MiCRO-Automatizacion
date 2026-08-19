@@ -3,19 +3,22 @@
 -- PROYECTO: Custodia de Instrumentos - MiCRO Automatización
 -- ====================================================================
 
--- 1. TABLA: INSTRUMENTOS
+-- 1. TABLA: INSTRUMENTOS (Clave primaria compuesta: codigo + nombre)
 CREATE TABLE IF NOT EXISTS public.instrumentos (
-    codigo TEXT PRIMARY KEY,
+    codigo TEXT NOT NULL,
     nombre TEXT NOT NULL,
     sector TEXT,
     estado_calibracion TEXT DEFAULT 'CALIBRADO',
     fecha_ultima_calibracion DATE,
     fecha_vencimiento_calibracion DATE,
     dias_hasta_vencimiento INTEGER,
-    updated_at TIMESTAMPTZ DEFAULT now()
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    PRIMARY KEY (codigo, nombre)
 );
 
--- Índices para búsqueda rápida
+-- Índices para búsqueda y filtrado de alto rendimiento
+CREATE INDEX IF NOT EXISTS idx_instrumentos_codigo ON public.instrumentos(codigo);
+CREATE INDEX IF NOT EXISTS idx_instrumentos_nombre ON public.instrumentos(nombre);
 CREATE INDEX IF NOT EXISTS idx_instrumentos_sector ON public.instrumentos(sector);
 CREATE INDEX IF NOT EXISTS idx_instrumentos_estado ON public.instrumentos(estado_calibracion);
 

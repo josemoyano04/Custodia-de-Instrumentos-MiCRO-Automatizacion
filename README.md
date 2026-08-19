@@ -71,7 +71,7 @@ Copia `app/.env.example` a `app/.env` y configura tus credenciales:
 
 ```env
 VITE_SUPABASE_URL=https://TU_PROYECTO.supabase.co
-VITE_SUPABASE_ANON_KEY=sb_publishable_TU_CLAVE_ANON
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_TU_CLAVE_AQUI
 VITE_SCRIPT_URL=https://script.google.com/macros/s/.../exec
 VITE_ADMIN_PASS=12345678
 VITE_DATA_SOURCE_MODE=AUTO

@@ -59,6 +59,9 @@ Este documento registra los requerimientos, cambios de esquemas en bases de dato
    - Tabla vinculada para adjuntar certificados de calibración trazables (INTI / laboratorios acreditados SAC).
 4. **Revisión del Script de Google Apps Script y Origen de Fechas de Calibración**:
    - **Objetivo**: Revisar junto al metrólogo la estructura de las pestañas en la planilla de Google Sheets y el script de extracción (`getInstrumentos` vs `getVencimientos`) para asegurar que todos los instrumentos del inventario general (897+ items) expongan sus fechas exactas de última calibración y fecha de vencimiento calculada, permitiendo que el sistema calcule los días restantes sin requerir estimaciones.
+5. **Regularización de Unicidad de Códigos de Instrumentos en Metrología**:
+   - **Estado actual**: Se implementó una **Clave Primaria Compuesta `(codigo, nombre)`** con índices B-Tree dedicados en `codigo` y `nombre` para tolerar instrumentos con el mismo código asignado pero distinta denominación.
+   - **Objetivo con Metrología**: Coordinar con el Departamento de Metrología / Calidad para que auditen la planilla de inventario maestro y definan un estándar de código único unívoco por instrumento físico (ej. agregando subíndices o sufijos de serie).
 
 ---
 
