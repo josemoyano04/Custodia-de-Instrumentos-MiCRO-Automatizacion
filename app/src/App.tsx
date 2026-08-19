@@ -22,7 +22,6 @@ import { InstrumentoSearch } from "./components/operario/InstrumentoSearch";
 import { DevolucionSearch } from "./components/operario/DevolucionSearch";
 import { SelectedTray } from "./components/operario/SelectedTray";
 import { MaquinaCard } from "./components/operario/MaquinaCard";
-import { AppNumericKeypad, type TargetInputType } from "./components/operario/AppNumericKeypad";
 import { ActionButtons } from "./components/operario/ActionButtons";
 import { PinModal } from "./components/shared/PinModal";
 import { ConfirmModal } from "./components/shared/ConfirmModal";
@@ -76,42 +75,6 @@ export function App() {
   const [operario, setOperario] = useState<Operario | null>(null);
   const [carrito, setCarrito] = useState<InstrumentoSeleccionado[]>([]);
   const [maquinaSel, setMaquinaSel] = useState<Maquina | null>(null);
-
-  // Estados para teclado numérico en pantalla
-  const [activeInputTarget, setActiveInputTarget] = useState<TargetInputType>("operario");
-  const [queryOperario, setQueryOperario] = useState<string>("");
-  const [queryMaquina, setQueryMaquina] = useState<string>("");
-  const [queryInstrumento, setQueryInstrumento] = useState<string>("");
-
-  const handleKeypadPress = (char: string) => {
-    if (activeInputTarget === "operario") {
-      setQueryOperario(prev => prev + char);
-    } else if (activeInputTarget === "maquina") {
-      setQueryMaquina(prev => prev + char);
-    } else if (activeInputTarget === "instrumento") {
-      setQueryInstrumento(prev => prev + char);
-    }
-  };
-
-  const handleKeypadBackspace = () => {
-    if (activeInputTarget === "operario") {
-      setQueryOperario(prev => prev.slice(0, -1));
-    } else if (activeInputTarget === "maquina") {
-      setQueryMaquina(prev => prev.slice(0, -1));
-    } else if (activeInputTarget === "instrumento") {
-      setQueryInstrumento(prev => prev.slice(0, -1));
-    }
-  };
-
-  const handleKeypadClear = () => {
-    if (activeInputTarget === "operario") {
-      setQueryOperario("");
-    } else if (activeInputTarget === "maquina") {
-      setQueryMaquina("");
-    } else if (activeInputTarget === "instrumento") {
-      setQueryInstrumento("");
-    }
-  };
 
   // Alertas y Modales
   const [resAlert, setResAlert] = useState<{ type: "ok" | "warn"; text: string } | null>(null);
@@ -463,44 +426,20 @@ export function App() {
                     operariosHabilitados={operariosHabilitados}
                     operarioSeleccionado={operario}
                     modo={modoOp}
-                    onSeleccionarOperario={(op) => {
-                      setOperario(op);
-                      if (op) {
-                        setActiveInputTarget(maquinaSel ? "instrumento" : "maquina");
-                      }
-                    }}
-                    onActiveInput={() => setActiveInputTarget("operario")}
-                    externalQuery={queryOperario}
-                    onExternalQueryChange={setQueryOperario}
+                    onSeleccionarOperario={setOperario}
                   />
 
                   <MaquinaCard
                     maquinas={MAQUINAS}
                     maquinaSeleccionada={maquinaSel}
-                    onSeleccionarMaquina={(m) => {
-                      setMaquinaSel(m);
-                      if (m) {
-                        setActiveInputTarget("instrumento");
-                      }
-                    }}
+                    onSeleccionarMaquina={setMaquinaSel}
                     visible={true}
                     label={modoOp === "devolucion" ? "Filtrar Máquina / Sector" : "Máquina / Sector"}
-                    onActiveInput={() => setActiveInputTarget("maquina")}
-                    externalQuery={queryMaquina}
-                    onExternalQueryChange={setQueryMaquina}
                   />
                 </div>
 
-                {/* TECLADO NUMÉRICO (Visible en PC y Tablet) */}
-                {/* <AppNumericKeypad
-                  activeTarget={activeInputTarget}
-                  onKeyPress={handleKeypadPress}
-                  onBackspace={handleKeypadBackspace}
-                  onClear={handleKeypadClear}
-                /> */}
-
                 {resAlert && (
-                  <div className={`alert ${resAlert.type}`} style={{ display: "block", marginTop: "10px" }}>
+                  <div className={`alert ${resAlert.type}`} style={{ display: "block" }}>
                     {resAlert.text}
                   </div>
                 )}
@@ -517,9 +456,6 @@ export function App() {
                     carrito={carrito}
                     onAgregarAlCarrito={handleAgregarAlCarritoRetiro}
                     onRetry={cargarDatos}
-                    onActiveInput={() => setActiveInputTarget("instrumento")}
-                    externalQuery={queryInstrumento}
-                    onExternalQueryChange={setQueryInstrumento}
                   />
                 ) : (
                   <DevolucionSearch
@@ -533,9 +469,6 @@ export function App() {
                     onSeleccionarTodos={handleSeleccionarTodosDevolucion}
                     onDeseleccionarTodos={handleDeseleccionarTodosDevolucion}
                     onRefresh={cargarEnUso}
-                    onActiveInput={() => setActiveInputTarget("instrumento")}
-                    externalQuery={queryInstrumento}
-                    onExternalQueryChange={setQueryInstrumento}
                   />
                 )}
 

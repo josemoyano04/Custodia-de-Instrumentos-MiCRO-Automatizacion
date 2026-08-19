@@ -924,28 +924,11 @@ input:disabled {
   }
 }
 
-/* En celulares ocultar teclado numérico de la app y el botón de teclado */
+/* En celulares ajustar buscador de instrumentos */
 @media (max-width: 640px) {
-  .app-numeric-keypad-card {
-    display: none !important;
-  }
-  .input-kbd-btn {
-    display: none !important;
-  }
   .inst-search-input {
     min-height: 44px !important;
     height: 44px !important;
     font-size: 13px !important;
   }
-}
-
-/* ESTILOS DEL TECLADO NUMÉRICO */
-.app-pad-key:hover {
-  background: var(--surface-hover) !important;
-  border-color: var(--blue) !important;
-}
-
-.app-pad-key:active {
-  transform: scale(0.96);
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
 }
